@@ -14,6 +14,8 @@ trigger:
 variables:
   isMain: $[eq(variables['Build.SourceBranch'], 'refs/heads/main')]
   isHotfix: $[contains(variables['Build.SourceBranch'], 'hotfix')]
+  isCandidate: $[contains(variables['Build.SourceBranch'], 'rc-*')]
+  isRelease: $[contains(variables['Build.SourceBranch'], 'v*')]
 
 stages:
 - stage: Build
@@ -38,10 +40,30 @@ stages:
         echo "Building code for $(GIT_SHA)"
         echo "image name: $(Build.Repository.Name):$(GIT_SHA)"
       displayName: 'Build'
-
+- stage: Deploy_Dev
+  pool: Default
+  jobs:
   - job: Deploy_Dev
     condition: eq(variables.isMain,true)
     steps:
     - script: |
         echo "deploying to dev"
       displayName: 'Deploy to dev'
+- stage: Deploy_SAND
+  pool: Default
+  condition: eq(variables.isCandidate,true)
+  jobs:
+  - job: Deploy_SAND
+    steps:
+    - script: |
+        echo "deploying to SAND"
+      displayName: 'Deploy to SAND'
+- stage: Deploy_Prod
+  condition: eq(variables.isRelease,true)
+  pool: Default
+  jobs:
+  - job: Deploy_Prod
+    steps:
+    - script: |
+        echo "deploying to Prod"
+      displayName: 'Deploy to Prod'
