@@ -24,6 +24,8 @@ steps:
     echo "##vso[task.setvariable variable=GIT_TAG;]$GIT_TAG"
     echo "isMain : $(isMain)"
     echo "isHotfix: $(isHotfix)"
+    echo "GIT_TAG: $(GIT_TAG)"
+    echo "GIT_SHA: $(GIT_SHA)"
   displayName: 'Set ENV variables'
   
 
