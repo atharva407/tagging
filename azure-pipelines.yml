@@ -12,10 +12,10 @@ trigger:
       - '*'
 
 variables:
-  isMain: $[eq(variables['Build.SourceBranch'], 'refs/heads/main')]
-  isHotfix: $[contains(variables['Build.SourceBranch'], 'hotfix')]
-  isCandidate: $[contains(variables['Build.SourceBranch'], 'rc-*')]
-  isRelease: $[contains(variables['Build.SourceBranch'], 'v*')]
+  isMain: $[eq(variables['Build.SourceBranchName'], 'main')]
+  isHotfix: $[startsWith(variables['Build.SourceBranchName'], 'hotfix')]
+  isCandidate: $[startsWith(variables['Build.SourceBranchName'], 'rc-')]
+  isRelease: $[startsWith(variables['Build.SourceBranchName'], 'v')]
 
 stages:
 - stage: Build
