@@ -15,27 +15,33 @@ variables:
   isMain: $[eq(variables['Build.SourceBranch'], 'refs/heads/main')]
   isHotfix: $[contains(variables['Build.SourceBranch'], 'hotfix')]
 
-pool: Default
-steps:
-- script: |
-    GIT_SHA=$(git rev-parse --short HEAD)
-    echo "##vso[task.setvariable variable=GIT_SHA;]$GIT_SHA"
-    GIT_TAG=$(git tag --points-at HEAD)
-    echo "##vso[task.setvariable variable=GIT_TAG;]$GIT_TAG"
-    echo "isMain : $(isMain)"
-    echo "isHotfix: $(isHotfix)"
-    echo "GIT_TAG: $GIT_TAG"
-    echo "GIT_SHA: $GIT_SHA"
-  displayName: 'Set ENV variables'
-  
+stages:
+- stage: Build
+  pool: Default
+  jobs: 
+  - job: Initialize
+    steps:
+    - script: |
+        GIT_SHA=$(git rev-parse --short HEAD)
+        echo "##vso[task.setvariable variable=GIT_SHA;]$GIT_SHA"
+        GIT_TAG=$(git tag --points-at HEAD)
+        echo "##vso[task.setvariable variable=GIT_TAG;]$GIT_TAG"
+        echo "isMain : $(isMain)"
+        echo "isHotfix: $(isHotfix)"
+        echo "GIT_TAG: $GIT_TAG"
+        echo "GIT_SHA: $GIT_SHA"
+      displayName: 'Set ENV variables'
+  - job: Build
+    condition: or(eq(variables.isMain,true),eq(variables.isHotfix,true))
+    steps:
+    - script: |
+        echo "Building code for $(GIT_SHA)"
+        echo "image name: $(Build.Repository.Name):$(GIT_SHA)"
+      displayName: 'Build'
 
-- script: |
-    echo "Building code for $(GIT_SHA)"
-    echo "image name: $(Build.Repository.Name):$(GIT_SHA)"
-  displayName: 'Build'
-  condition: or(eq(variables.isMain,true),eq(variables.isHotfix,true))
-
-- script: |
-    echo "deploying to dev"
-  displayName: 'Deploy to dev'
-  condition: eq(variables.isMain,true)  
+  - job: Deploy_Dev
+    condition: eq(variables.isMain,true)
+    steps:
+    - script: |
+        echo "deploying to dev"
+      displayName: 'Deploy to dev'
