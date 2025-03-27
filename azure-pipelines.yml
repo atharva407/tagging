@@ -43,10 +43,10 @@ stages:
         echo "image name: $(Build.Repository.Name):$GIT_SHA"
       displayName: 'Build'
 - stage: Deploy_Dev
+  condition: eq(variables.isMain,true)
   pool: Default
   jobs:
   - job: Deploy_Dev
-    condition: eq(variables.isMain,true)
     steps:
     - script: |
         echo "deploying to dev"
