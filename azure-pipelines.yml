@@ -39,8 +39,8 @@ stages:
     condition: or(eq(variables.isMain,true),eq(variables.isHotfix,true))
     steps:
     - script: |
-        echo "Building code for $(GIT_SHA)"
-        echo "image name: $(Build.Repository.Name):$(GIT_SHA)"
+        echo "Building code for $GIT_SHA"
+        echo "image name: $(Build.Repository.Name):$GIT_SHA"
       displayName: 'Build'
 - stage: Deploy_Dev
   pool: Default
@@ -58,8 +58,8 @@ stages:
   - job: Deploy_SAND
     steps:
     - script: |
-        echo "docker pull image:$(GIT_SHA)"
-        echo "docker tag image:$(GIT_TAG"
+        echo "docker pull image:$GIT_SHA"
+        echo "docker tag image:$GIT_TAG"
         echo "deploying to SAND"
       displayName: 'Deploy to SAND'
 - stage: Deploy_Prod
@@ -69,7 +69,7 @@ stages:
   - job: Deploy_Prod
     steps:
     - script: |
-        echo "docker pull image:$(GIT_SHA)"
-        echo "docker tag image:$(GIT_TAG"
+        echo "docker pull image:$GIT_SHA"
+        echo "docker tag image:$GIT_TAG"
         echo "deploying to Prod"
       displayName: 'Deploy to Prod'
