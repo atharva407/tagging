@@ -26,13 +26,15 @@ stages:
   - job: Initialize
     steps:
     - task: Bash@3
+      name: set_env
       displayName: 'Set ENV variables'
       inputs:
         targetType: inline
         script: |
-          echo "##vso[task.setvariable variable=gitSha]$(Build.SourceVersion)|cut -c-7"
+          echo "##vso[task.setvariable variable=gitSha;isOutput=true]$(Build.SourceVersion)|cut -c-7"
           # Get the tag pointing to the current commit
-          echo "##vso[task.setvariable variable=gitTag;]$(Build.SourceVersion)"
+          tag=$(git tag --points-at HEAD)
+          echo "##vso[task.setvariable variable=gitTag;isOutput=true]$tag"
           echo "isMain : $(isMain)"
           echo "isHotfix: $(isHotfix)"
           echo "isCandidate : $(isCandidate)"
@@ -41,11 +43,15 @@ stages:
         echo $(gitTag)
         echo $(gitSha)
   - job: Build
+    dependsOn: Initialize
     condition: or(eq(variables.isMain,true),eq(variables.isHotfix,true))
+    variables:
+      GIT_SHA: $[ dependencies.Initialize.outputs['set_env.gitSha'] ]
+      GIT_TAG: $[ dependencies.Initialize.outputs['set_env.gitTag'] ]
     steps:
     - script: |
-        echo "Building code for $(gitSha)"
-        echo "image name: $(Build.Repository.Name):$(gitSha)"
+        echo "Building code for $(GIT_SHA)"
+        echo "image name: $(Build.Repository.Name):$(GIT_SHA)"
       displayName: 'Build'
 - stage: Deploy_Dev
   condition: eq(variables.isMain,true)
