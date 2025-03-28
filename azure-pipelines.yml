@@ -64,7 +64,7 @@ stages:
     steps:
     - script: |
         echo "Building code for $(GIT_SHA)"
-        echo "image name: $(IMAGE):$(GIT_TAG)"
+        echo "image name: $(IMAGE):$(GIT_SHA)"
         echo $(GIT_SHA)
         echo $(GIT_TAG)
       displayName: 'Build'
