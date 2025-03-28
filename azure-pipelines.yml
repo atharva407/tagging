@@ -18,15 +18,16 @@ variables:
   isHotfix: $[startsWith(variables['Build.SourceBranchName'], 'hotfix')]
   isCandidate: $[startsWith(variables['Build.SourceBranchName'], 'rc-')]
   isRelease: $[startsWith(variables['Build.SourceBranchName'], 'v')]
-
+  IMAGE: $(Build.Repository.Version)
+stages:
 # Had an option of choosing between stages and Jobs, its not a neccesity to use stages, just my choice
 # I just used stages to group jobs together, for e.g: we have 2 sandbox envs, so both deployment jobs are in deploy_sand stage.
 # We can easily switch back to jobs if we want.
 
-jobs:
-  - job: init
-    displayName: 'Initialize Variables'
-    pool: Default #Can be any pool
+- stage: build
+  pool: Default
+  jobs: 
+  - job: Initialize
     steps:
     - script: |
         echo "isMain : $(isMain)"
@@ -45,58 +46,25 @@ jobs:
           GIT_TAG=$(git tag --points-at HEAD)
           echo "##vso[task.setvariable variable=tag;isOutput=true]$GIT_TAG"
           echo $GIT_TAG
-          echo "##vso[task.setvariable variable=image;isOutput=true]$(Build.Repository.Name)"
-  - job: build
-    displayName: 'Build Project'
+    - task: Bash@3
+      inputs:
+        targetType: 'inline'
+        script: |
+          # Write your commands here
+          echo $sha
+          echo $tag
+          echo $(sha)
+          echo $(tag)
+  - job: Build
+    dependsOn: Initialize
     condition: or(eq(variables.isMain,true),eq(variables.isHotfix,true))
-    dependsOn: 'init'
     variables:
       GIT_SHA: $[ dependencies.Initialize.outputs['set_env.sha'] ]
       GIT_TAG: $[ dependencies.Initialize.outputs['set_env.tag'] ]
-      IMAGE: $[dependencies.Initialize.outputs['set_env.image']]
-    pool: 'Default'  #Replace by build agent pool / dev
     steps:
-      - task: Bash@3
-        inputs:
-          targetType: 'inline'
-          script: |
-            echo "docker build steps.."
-            echo "image tag: $(IMAGE):$(GIT_SHA)"
-            echo "docker push DEV_ACR/$(IMAGE)"
-  - deployment: dev_deploy
-    displayName: 'Deploy to dev env'
-    condition: eq(variables.isMain,true)
-    dependsOn: 'build'
-    pool: 'Default' #Replace with Dev Agent pool
-    environment: development
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-            - task: Bash@3
-              inputs:
-                targetType: 'inline'
-                script: |
-                  echo "container app dev deployment with DEV_ACR/$(IMAGE):$(GIT_SHA)"
-  - deployment: sand_US_deploy
-    displayName: 'Deploy to US sandbox env'
-    condition: startsWith(variables['Build.SourceBranchName'], 'rc-')
-    variables:
-      GIT_SHA: $[ dependencies.Initialize.outputs['set_env.sha'] ]
-      GIT_TAG: $[ dependencies.Initialize.outputs['set_env.tag'] ]
-      IMAGE: $[dependencies.Initialize.outputs['set_env.image']]
-    dependsOn: 'init'
-    pool: 'Default' #Replace With Sandbox US pool
-    environment: 'sandbox_US'
-    strategy:
-     runOnce:
-       deploy:
-        steps:
-        - task: Bash@3
-          inputs:
-            targetType: 'inline'
-            script: |
-              echo "docker pull $(IMAGE):$(GIT_SHA)"
-              echo "docker tag $(IMAGE):$(GIT_SHA) $(IMAGE):$(GIT_TAG)"
-              echo "docker push SAND_ACR/$(IMAGE):$(GIT_TAG)"
-              echo "container app dev deployment with SAND_ACR/$(IMAGE):$(GIT_SHA)"
+    - script: |
+        echo "Building code for $(GIT_SHA)"
+        echo "image name: $(IMAGE):$(GIT_TAG)"
+        echo $(GIT_SHA)
+        echo $(GIT_TAG)
+      displayName: 'Build'
