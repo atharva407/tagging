@@ -18,7 +18,7 @@ variables:
   isHotfix: $[startsWith(variables['Build.SourceBranchName'], 'hotfix')]
   isCandidate: $[startsWith(variables['Build.SourceBranchName'], 'rc-')]
   isRelease: $[startsWith(variables['Build.SourceBranchName'], 'v')]
-  IMAGE: $(Build.Repository.Version)
+  IMAGE: $(Build.Repository.Name)
 stages:
 # Had an option of choosing between stages and Jobs, its not a neccesity to use stages, just my choice
 # I just used stages to group jobs together, for e.g: we have 2 sandbox envs, so both deployment jobs are in deploy_sand stage.
