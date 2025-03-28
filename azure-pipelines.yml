@@ -88,8 +88,7 @@ stages:
                 script: |
                   echo "container app dev deployment with DEV_ACR/$(IMAGE):$(GIT_SHA)"
 - stage: deploy_sand
-  condition: startsWith(variables['Build.SourceBranchName'], 'rc-')
-  dependsOn: 'build'
+  condition: eq(variables.isCandidate,true)
   jobs:
   - deployment:
     pool: 'Default' #Replace with Dev Agent pool
