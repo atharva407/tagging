@@ -30,18 +30,16 @@ stages:
       inputs:
         targetType: inline
         script: |
-          sha=$(git rev-parse --short HEAD)
-          echo "##vso[task.setvariable variable=gitSHA;]$sha"
-
+          echo "##vso[task.setvariable variable=gitSha]$(Build.SourceVersion)|cut -c-7"
           # Get the tag pointing to the current commit
-          tag=$(git tag --points-at HEAD)
-          echo "##vso[task.setvariable variable=gitTAG;]$tag"
+          echo "##vso[task.setvariable variable=gitTag;]$(Build.SourceVersion)"
           echo "isMain : $(isMain)"
           echo "isHotfix: $(isHotfix)"
           echo "isCandidate : $(isCandidate)"
           echo "isRelease: $(isRelease)"
-          echo "GIT_TAG: $(gitSha)"
-          echo "GIT_SHA: $(gitTag)"
+    - script: |
+        echo $(gitTag)
+        echo $(gitSha)
   - job: Build
     condition: or(eq(variables.isMain,true),eq(variables.isHotfix,true))
     steps:
