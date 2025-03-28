@@ -26,8 +26,7 @@ stages:
   - job: Initialize
     steps:
     - script: |
-        sha=$(git rev-parse --short HEAD)
-        echo "##vso[task.setvariable variable=gitSHA;]$sha"
+        echo "##vso[task.setvariable variable=gitSha;isOutput=true]${BUILD_SOURCEVERSION:0:7}"
         # Get the tag pointing to the current commit
         tag=$(git tag --points-at HEAD)
         echo "##vso[task.setvariable variable=gitTag;isOutput=true]$tag"
@@ -36,8 +35,8 @@ stages:
         echo "isCandidate : $(isCandidate)"
         echo "isRelease: $(isRelease)"
     - script: |
-        echo $gitTag
-        echo $gitSha
+        echo $(gitTag)
+        echo $(gitSha)
   - job: Build
     dependsOn: Initialize
     condition: or(eq(variables.isMain,true),eq(variables.isHotfix,true))
