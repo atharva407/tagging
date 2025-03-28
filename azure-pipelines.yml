@@ -27,7 +27,7 @@ stages:
 - stage: build
   pool: Default
   jobs: 
-  - job: Initialize
+  - job: init
     steps:
     - script: |
         echo "isMain : $(isMain)"
@@ -56,11 +56,11 @@ stages:
           echo $(sha)
           echo $(tag)
   - job: Build
-    dependsOn: Initialize
+    dependsOn: init
     condition: or(eq(variables.isMain,true),eq(variables.isHotfix,true))
     variables:
-      GIT_SHA: $[ dependencies.Initialize.outputs['set_env.sha'] ]
-      GIT_TAG: $[ dependencies.Initialize.outputs['set_env.tag'] ]
+      GIT_SHA: $[ dependencies.init.outputs['set_env.sha'] ]
+      GIT_TAG: $[ dependencies.init.outputs['set_env.tag'] ]
     steps:
     - script: |
         echo "Building code for $(GIT_SHA)"
@@ -75,6 +75,9 @@ stages:
   - deployment:
     pool: 'Default' #Replace with Dev Agent pool
     environment: development
+    variables:
+      GIT_SHA: $[ stageDependencies.build.init.outputs['set_env.sha'] ]
+      GIT_TAG: $[ stageDependencies.build.init.outputs['set_env.tag'] ]
     strategy:
       runOnce:
         deploy:
