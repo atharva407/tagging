@@ -25,18 +25,21 @@ stages:
   jobs: 
   - job: Initialize
     steps:
-    - script: |
-        GIT_SHA=$(git rev-parse --short HEAD)
-        echo "##vso[task.setvariable variable=gitSHA]$GIT_SHA"
-        GIT_TAG=$(git tag --points-at HEAD)
-        echo "##vso[task.setvariable variable=gitTAG]$GIT_TAG"
-        echo "isMain : $(isMain)"
-        echo "isHotfix: $(isHotfix)"
-        echo "isCandidate : $(isCandidate)"
-        echo "isRelease: $(isRelease)"
-        echo "GIT_TAG: $gitSHA"
-        echo "GIT_SHA: $gitTAG"
+    - task: Bash@3
       displayName: 'Set ENV variables'
+      inputs:
+        targetType: inline
+        script: |
+          GIT_SHA=$(git rev-parse --short HEAD)
+          echo "##vso[task.setvariable variable=gitSHA]$GIT_SHA"
+          GIT_TAG=$(git tag --points-at HEAD)
+          echo "##vso[task.setvariable variable=gitTAG]$GIT_TAG"
+          echo "isMain : $(isMain)"
+          echo "isHotfix: $(isHotfix)"
+          echo "isCandidate : $(isCandidate)"
+          echo "isRelease: $(isRelease)"
+          echo "GIT_TAG: $gitSHA"
+          echo "GIT_SHA: $gitTAG"
   - job: Build
     condition: or(eq(variables.isMain,true),eq(variables.isHotfix,true))
     steps:
