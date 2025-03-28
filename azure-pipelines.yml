@@ -87,3 +87,25 @@ stages:
                 targetType: 'inline'
                 script: |
                   echo "container app dev deployment with DEV_ACR/$(IMAGE):$(GIT_SHA)"
+- stage: deploy_sand
+  condition: startsWith(variables['Build.SourceBranchName'], 'rc-')
+  dependsOn: 'build'
+  jobs:
+  - deployment:
+    pool: 'Default' #Replace with Dev Agent pool
+    environment: sandbox_US
+    variables:
+      GIT_SHA: $[ stageDependencies.build.init.outputs['set_env.sha'] ]
+      GIT_TAG: $[ stageDependencies.build.init.outputs['set_env.tag'] ]
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - task: Bash@3
+              inputs:
+                targetType: 'inline'
+                script: |
+                  echo "docker pull $(IMAGE):$(GIT_SHA)"
+                  echo "docker tag $(IMAGE):$(GIT_SHA) $(IMAGE):$(GIT_TAG)"
+                  echo "docker push SAND_ACR/$(IMAGE):$(GIT_TAG)"
+                  echo "container app dev deployment with SAND_ACR/$(IMAGE):$(GIT_SHA)"
