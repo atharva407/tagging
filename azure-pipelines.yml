@@ -38,14 +38,14 @@ stages:
           echo "isHotfix: $(isHotfix)"
           echo "isCandidate : $(isCandidate)"
           echo "isRelease: $(isRelease)"
-          echo "GIT_TAG: $gitSHA"
-          echo "GIT_SHA: $gitTAG"
+          echo "GIT_TAG: $(gitSHA)"
+          echo "GIT_SHA: $(gitTAG)"
   - job: Build
     condition: or(eq(variables.isMain,true),eq(variables.isHotfix,true))
     steps:
     - script: |
-        echo "Building code for $gitSHA"
-        echo "image name: $(Build.Repository.Name):$gitSHA"
+        echo "Building code for $(gitSHA)"
+        echo "image name: $(Build.Repository.Name):$(gitSHA)"
       displayName: 'Build'
 - stage: Deploy_Dev
   condition: eq(variables.isMain,true)
