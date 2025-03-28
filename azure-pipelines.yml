@@ -80,7 +80,7 @@ jobs:
                   echo "container app dev deployment with DEV_ACR/$(IMAGE):$(GIT_SHA)"
   - deployment: sand_US_deploy
     displayName: 'Deploy to US sandbox env'
-    condition: eq(variables.isCandidate,true)
+    condition: startsWith(variables['Build.SourceBranchName'], 'rc-')
     variables:
       GIT_SHA: $[ dependencies.Initialize.outputs['set_env.sha'] ]
       GIT_TAG: $[ dependencies.Initialize.outputs['set_env.tag'] ]
