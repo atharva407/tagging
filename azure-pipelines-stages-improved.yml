@@ -68,6 +68,7 @@ stages:
   - deployment:
     pool: 'Default' #Replace with Dev Agent pool
     environment: development
+    displayName: 'Deploy to dev'
     variables:
       GIT_SHA: $[ stageDependencies.setup.init.outputs['set_env.sha'] ]
       GIT_TAG: $[ stageDependencies.setup.init.outputs['set_env.tag'] ]
@@ -83,6 +84,7 @@ stages:
 - stage: deploy_sand
   condition: eq(variables.isCandidate,true)
   dependsOn: setup
+  displayName: 'Deploy to sand'
   variables:
       GIT_SHA: $[ stageDependencies.setup.init.outputs['set_env.sha'] ]
       GIT_TAG: $[ stageDependencies.setup.init.outputs['set_env.tag'] ]
@@ -90,6 +92,7 @@ stages:
   - deployment:
     pool: 'Default' #Replace with Sand US Agent pool
     environment: sandbox_US
+    displayName: 'Deploy to sand US'
     strategy:
       runOnce:
         deploy:
@@ -105,6 +108,7 @@ stages:
   - deployment:
     pool: 'Default' #Replace with Sand UK Agent pool
     environment: sandbox_UK
+    displayName: 'Deploy to sand UK'
     strategy:
       runOnce:
         deploy:
@@ -120,6 +124,7 @@ stages:
 
 - stage: deploy_prod
   condition: eq(variables.isRelease,true)
+  displayName: 'Deploy to Prod'
   variables:
       GIT_SHA: $[ stageDependencies.build.init.outputs['set_env.sha'] ]
       GIT_TAG: $[ stageDependencies.build.init.outputs['set_env.tag'] ]
@@ -127,6 +132,7 @@ stages:
   - deployment:
     pool: 'Default' #Replace with Dev Agent pool
     environment: production
+    displayName: 'Deploy to prod'
     strategy:
       runOnce:
         deploy:
