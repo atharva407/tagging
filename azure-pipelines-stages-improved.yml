@@ -63,6 +63,7 @@ stages:
 
 - stage: deploy_dev
   condition: eq(variables.isMain,true)
+  displayName: 'Deploy to Dev'
   dependsOn: [ build , setup ]
   jobs:
   - deployment:
