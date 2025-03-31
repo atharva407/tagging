@@ -21,47 +21,55 @@ variables:
   isRelease: $[startsWith(variables['Build.SourceBranchName'], 'v')]
   IMAGE: $(Build.Repository.Name)
 stages:
-# Had an option of choosing between stages and Jobs, its not a neccesity to use stages, just my choice
-# I just used stages to group jobs together, for e.g: we have 2 sandbox envs, so both deployment jobs are in deploy_sand stage.
-# We can easily switch back to jobs if we want.
-
+- stage: setup
+  displayName: Setup pipeline variables
+  jobs:
+    - job: init
+      displayName: Initialize variables
+      steps:
+      - script: |
+          echo "isMain : $(isMain)"
+          echo "isHotfix: $(isHotfix)"
+          echo "isCandidate : $(isCandidate)"
+          echo "isRelease: $(isRelease)"
+      - task: Bash@3
+        name: set_env
+        displayName: 'Set Env'
+        inputs:
+          targetType: inline
+          script: |
+            GIT_SHA=$(git rev-parse --short HEAD)
+            echo "##vso[task.setvariable variable=sha;isOutput=true]$GIT_SHA"
+            echo $GIT_SHA
+            GIT_TAG=$(git tag --points-at HEAD)
+            echo "##vso[task.setvariable variable=tag;isOutput=true]$GIT_TAG"
+            echo $GIT_TAG
 - stage: build
   pool: Default
+  variables:
+    GIT_SHA: $[ stageDependencies.setup.init.outputs['set_env.sha'] ]
+    GIT_TAG: $[ stageDependencies.setup.init.outputs['set_env.tag'] ]
   jobs:
   - job: Build
     condition: or(eq(variables.isMain,true),eq(variables.isHotfix,true))
     steps:
-    - task: Bash@3
-      name: set_env
-      displayName: 'Set Env'
-      inputs:
-        targetType: inline
-        script: |
-          GIT_SHA=$(git rev-parse --short HEAD)
-          echo "##vso[task.setvariable variable=sha;isOutput=true]$GIT_SHA"
-          echo $GIT_SHA
-          GIT_TAG=$(git tag --points-at HEAD)
-          echo "##vso[task.setvariable variable=tag;isOutput=true]$GIT_TAG"
-          echo $GIT_TAG
     - script: |
         echo "Building code for $(GIT_SHA)"
         echo "image name: $(IMAGE):$(GIT_SHA)"
         echo $(GIT_SHA)
         echo $(GIT_TAG)
       displayName: 'Build'
-      env:
-        GIT_SHA: $(gitSha)
-        GIT_TAG: $(gitTag)
+
 - stage: deploy_dev
   condition: eq(variables.isMain,true)
-  dependsOn: 'build'
+  dependsOn: build
   jobs:
   - deployment:
     pool: 'Default' #Replace with Dev Agent pool
     environment: development
     variables:
-      GIT_SHA: $[ stageDependencies.build.init.outputs['set_env.sha'] ]
-      GIT_TAG: $[ stageDependencies.build.init.outputs['set_env.tag'] ]
+      GIT_SHA: $[ stageDependencies.setup.init.outputs['set_env.sha'] ]
+      GIT_TAG: $[ stageDependencies.setup.init.outputs['set_env.tag'] ]
     strategy:
       runOnce:
         deploy:
@@ -73,13 +81,14 @@ stages:
                   echo "container app dev deployment with DEV_ACR/$(IMAGE):$(GIT_SHA)"
 - stage: deploy_sand
   condition: eq(variables.isCandidate,true)
+  dependsOn: setup
+  variables:
+      GIT_SHA: $[ stageDependencies.setup.init.outputs['set_env.sha'] ]
+      GIT_TAG: $[ stageDependencies.setup.init.outputs['set_env.tag'] ]
   jobs:
   - deployment:
     pool: 'Default' #Replace with Sand US Agent pool
     environment: sandbox_US
-    variables:
-      GIT_SHA: $[ stageDependencies.build.init.outputs['set_env.sha'] ]
-      GIT_TAG: $[ stageDependencies.build.init.outputs['set_env.tag'] ]
     strategy:
       runOnce:
         deploy:
@@ -95,9 +104,6 @@ stages:
   - deployment:
     pool: 'Default' #Replace with Sand UK Agent pool
     environment: sandbox_UK
-    variables:
-      GIT_SHA: $[ stageDependencies.build.init.outputs['set_env.sha'] ]
-      GIT_TAG: $[ stageDependencies.build.init.outputs['set_env.tag'] ]
     strategy:
       runOnce:
         deploy:
@@ -113,13 +119,13 @@ stages:
 
 - stage: deploy_prod
   condition: eq(variables.isRelease,true)
+  variables:
+      GIT_SHA: $[ stageDependencies.build.init.outputs['set_env.sha'] ]
+      GIT_TAG: $[ stageDependencies.build.init.outputs['set_env.tag'] ]
   jobs:
   - deployment:
     pool: 'Default' #Replace with Dev Agent pool
     environment: production
-    variables:
-      GIT_SHA: $[ stageDependencies.build.init.outputs['set_env.sha'] ]
-      GIT_TAG: $[ stageDependencies.build.init.outputs['set_env.tag'] ]
     strategy:
       runOnce:
         deploy:
