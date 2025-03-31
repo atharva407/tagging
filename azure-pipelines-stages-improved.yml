@@ -124,6 +124,7 @@ stages:
 
 - stage: deploy_prod
   condition: eq(variables.isRelease,true)
+  dependsOn: setup
   displayName: 'Deploy to Prod'
   variables:
       GIT_SHA: $[ stageDependencies.build.init.outputs['set_env.sha'] ]
