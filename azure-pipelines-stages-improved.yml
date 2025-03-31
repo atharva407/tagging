@@ -63,7 +63,7 @@ stages:
 
 - stage: deploy_dev
   condition: eq(variables.isMain,true)
-  dependsOn: build
+  dependsOn: [ build , setup ]
   jobs:
   - deployment:
     pool: 'Default' #Replace with Dev Agent pool
