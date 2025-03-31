@@ -71,6 +71,7 @@ stages:
       displayName: 'Build'
 - stage: deploy_dev
   condition: eq(variables.isMain,true)
+  displayName: 'Deploy to Dev'
   dependsOn: 'build'
   jobs:
   - deployment:
@@ -90,6 +91,7 @@ stages:
                   echo "container app dev deployment with DEV_ACR/$(IMAGE):$(GIT_SHA)"
 - stage: deploy_sand
   condition: eq(variables.isCandidate,true)
+  displayName: 'Deploy to Sand'
   jobs:
   - deployment:
     pool: 'Default' #Replace with Sand US Agent pool
@@ -130,6 +132,7 @@ stages:
 
 - stage: deploy_prod
   condition: eq(variables.isRelease,true)
+  displayName: 'Deploy to Prod'
   jobs:
   - deployment:
     pool: 'Default' #Replace with Dev Agent pool
