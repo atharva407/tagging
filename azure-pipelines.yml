@@ -77,6 +77,7 @@ stages:
   - deployment:
     pool: 'Default' #Replace with Dev Agent pool
     environment: development
+    displayName: 'Deploy to Dev'
     variables:
       GIT_SHA: $[ stageDependencies.build.init.outputs['set_env.sha'] ]
       GIT_TAG: $[ stageDependencies.build.init.outputs['set_env.tag'] ]
@@ -115,7 +116,7 @@ stages:
   - deployment:
     pool: 'Default' #Replace with Sand UK Agent pool
     environment: sandbox_UK
-    displayName: 'Deploy to Sand US'
+    displayName: 'Deploy to Sand UK'
     variables:
       GIT_SHA: $[ stageDependencies.build.init.outputs['set_env.sha'] ]
       GIT_TAG: $[ stageDependencies.build.init.outputs['set_env.tag'] ]
