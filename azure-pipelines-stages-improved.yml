@@ -21,30 +21,6 @@ variables:
   isRelease: $[startsWith(variables['Build.SourceBranchName'], 'v')]
   IMAGE: $(Build.Repository.Name)
 stages:
-- stage: setup
-  displayName: Setup pipeline variables
-  jobs:
-    - job: init
-      displayName: Initialize variables
-      pool: 'Default'
-      steps:
-      - script: |
-          echo "isMain : $(isMain)"
-          echo "isHotfix: $(isHotfix)"
-          echo "isCandidate : $(isCandidate)"
-          echo "isRelease: $(isRelease)"
-      - task: Bash@3
-        name: set_env
-        displayName: 'Set Env'
-        inputs:
-          targetType: inline
-          script: |
-            GIT_SHA=$(git rev-parse --short HEAD)
-            echo "##vso[task.setvariable variable=sha;isOutput=true]$GIT_SHA"
-            echo $GIT_SHA
-            GIT_TAG=$(git tag --points-at HEAD)
-            echo "##vso[task.setvariable variable=tag;isOutput=true]$GIT_TAG"
-            echo $GIT_TAG
 - stage: build
   condition: or(eq(variables.isMain,true),eq(variables.isHotfix,true))
   variables:
@@ -54,41 +30,58 @@ stages:
   - job: Build
     pool: 'Default'
     steps:
+    - task: Bash@3
+      name: set_env
+      displayName: 'Set Env'
+      inputs:
+        targetType: inline
+        script: |
+          GIT_SHA=$(git rev-parse --short HEAD)
+          echo "##vso[task.setvariable variable=sha]$GIT_SHA"
+          echo $GIT_SHA
+          GIT_TAG=$(git tag --points-at HEAD)
+          echo "##vso[task.setvariable variable=tag]$GIT_TAG"
+          echo $GIT_TAG
     - script: |
-        echo "Building code for $(GIT_SHA)"
-        echo "image name: $(IMAGE):$(GIT_SHA)"
-        echo $(GIT_SHA)
-        echo $(GIT_TAG)
+        echo "Building code for $(sha)"
+        echo "image name: $(IMAGE):$(sha)"
+        echo $(sha)
+        echo $(tag)
       displayName: 'Build'
 
 - stage: deploy_dev
   condition: eq(variables.isMain,true)
   displayName: 'Deploy to Dev'
-  dependsOn: [ build , setup ]
+  dependsOn: 'build'
   jobs:
   - deployment:
     pool: 'Default' #Replace with Dev Agent pool
     environment: development
     displayName: 'Deploy to dev'
-    variables:
-      GIT_SHA: $[ stageDependencies.setup.init.outputs['set_env.sha'] ]
-      GIT_TAG: $[ stageDependencies.setup.init.outputs['set_env.tag'] ]
     strategy:
       runOnce:
         deploy:
           steps:
             - task: Bash@3
+              name: set_env
+              displayName: 'Set Env'
+              inputs:
+                targetType: inline
+                script: |
+                  GIT_SHA=$(git rev-parse --short HEAD)
+                  echo "##vso[task.setvariable variable=sha]$GIT_SHA"
+                  echo $GIT_SHA
+                  GIT_TAG=$(git tag --points-at HEAD)
+                  echo "##vso[task.setvariable variable=tag]$GIT_TAG"
+                  echo $GIT_TAG
+            - task: Bash@3
               inputs:
                 targetType: 'inline'
                 script: |
-                  echo "container app dev deployment with DEV_ACR/$(IMAGE):$(GIT_SHA)"
+                  echo "container app dev deployment with DEV_ACR/$(IMAGE):$(sha)"
 - stage: deploy_sand
   condition: eq(variables.isCandidate,true)
-  dependsOn: setup
   displayName: 'Deploy to sand'
-  variables:
-      GIT_SHA: $[ stageDependencies.setup.init.outputs['set_env.sha'] ]
-      GIT_TAG: $[ stageDependencies.setup.init.outputs['set_env.tag'] ]
   jobs:
   - deployment:
     pool: 'Default' #Replace with Sand US Agent pool
@@ -99,13 +92,25 @@ stages:
         deploy:
           steps:
             - task: Bash@3
+              name: set_env
+              displayName: 'Set Env'
+              inputs:
+                targetType: inline
+                script: |
+                  GIT_SHA=$(git rev-parse --short HEAD)
+                  echo "##vso[task.setvariable variable=sha]$GIT_SHA"
+                  echo $GIT_SHA
+                  GIT_TAG=$(git tag --points-at HEAD)
+                  echo "##vso[task.setvariable variable=tag]$GIT_TAG"
+                  echo $GIT_TAG
+            - task: Bash@3
               inputs:
                 targetType: 'inline'
                 script: |
-                  echo "docker pull $(IMAGE):$(GIT_SHA)"
-                  echo "docker tag $(IMAGE):$(GIT_SHA) $(IMAGE):$(GIT_TAG)"
-                  echo "docker push SAND_ACR/$(IMAGE):$(GIT_TAG)"
-                  echo "container app dev deployment with SAND_ACR/$(IMAGE):$(GIT_SHA)"
+                  echo "docker pull $(IMAGE):$(sha)"
+                  echo "docker tag $(IMAGE):$(sha) $(IMAGE):$(tag)"
+                  echo "docker push SAND_ACR/$(IMAGE):$(tag)"
+                  echo "container app dev deployment with SAND_ACR/$(IMAGE):$(tag)"
   - deployment:
     pool: 'Default' #Replace with Sand UK Agent pool
     environment: sandbox_UK
@@ -115,21 +120,29 @@ stages:
         deploy:
           steps:
             - task: Bash@3
+              name: set_env
+              displayName: 'Set Env'
+              inputs:
+                targetType: inline
+                script: |
+                  GIT_SHA=$(git rev-parse --short HEAD)
+                  echo "##vso[task.setvariable variable=sha]$GIT_SHA"
+                  echo $GIT_SHA
+                  GIT_TAG=$(git tag --points-at HEAD)
+                  echo "##vso[task.setvariable variable=tag]$GIT_TAG"
+                  echo $GIT_TAG
+            - task: Bash@3
               inputs:
                 targetType: 'inline'
                 script: |
-                  echo "docker pull $(IMAGE):$(GIT_SHA)"
-                  echo "docker tag $(IMAGE):$(GIT_SHA) $(IMAGE):$(GIT_TAG)"
-                  echo "docker push SAND_ACR/$(IMAGE):$(GIT_TAG)"
-                  echo "container app sand deployment with SAND_UK_ACR/$(IMAGE):$(GIT_SHA)"
+                  echo "docker pull $(IMAGE):$(sha)"
+                  echo "docker tag $(IMAGE):$(sha) $(IMAGE):$(tag)"
+                  echo "docker push SAND_ACR/$(IMAGE):$(tag)"
+                  echo "container app sand deployment with SAND_UK_ACR/$(IMAGE):$(tag)"
 
 - stage: deploy_prod
   condition: eq(variables.isRelease,true)
-  dependsOn: setup
   displayName: 'Deploy to Prod'
-  variables:
-      GIT_SHA: $[ stageDependencies.build.init.outputs['set_env.sha'] ]
-      GIT_TAG: $[ stageDependencies.build.init.outputs['set_env.tag'] ]
   jobs:
   - deployment:
     pool: 'Default' #Replace with Dev Agent pool
@@ -140,10 +153,22 @@ stages:
         deploy:
           steps:
             - task: Bash@3
+              name: set_env
+              displayName: 'Set Env'
+              inputs:
+                targetType: inline
+                script: |
+                  GIT_SHA=$(git rev-parse --short HEAD)
+                  echo "##vso[task.setvariable variable=sha]$GIT_SHA"
+                  echo $GIT_SHA
+                  GIT_TAG=$(git tag --points-at HEAD)
+                  echo "##vso[task.setvariable variable=tag]$GIT_TAG"
+                  echo $GIT_TAG
+            - task: Bash@3
               inputs:
                 targetType: 'inline'
                 script: |
-                  echo "docker pull $(IMAGE):$(GIT_SHA)"
-                  echo "docker tag $(IMAGE):$(GIT_SHA) $(IMAGE):$(GIT_TAG)"
-                  echo "docker push SAND_ACR/$(IMAGE):$(GIT_TAG)"
-                  echo "container app prod deployment with PROD_ACR/$(IMAGE):$(GIT_SHA)"
+                  echo "docker pull $(IMAGE):$(sha)"
+                  echo "docker tag $(IMAGE):$(sha) $(IMAGE):$(tag)"
+                  echo "docker push SAND_ACR/$(IMAGE):$(tag)"
+                  echo "container app prod deployment with PROD_ACR/$(IMAGE):$(tag)"
