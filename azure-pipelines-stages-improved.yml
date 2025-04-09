@@ -100,8 +100,7 @@ stages:
                   GIT_SHA=$(git rev-parse --short HEAD)
                   echo "##vso[task.setvariable variable=sha]$GIT_SHA"
                   echo $GIT_SHA
-                  GIT_TAG=$(git tag --points-at HEAD)
-                  git tag --points-at HEAD
+                  GIT_TAG=$(Build.SourceBranchVersion)
                   echo "##vso[task.setvariable variable=tag]$GIT_TAG"
                   echo $GIT_TAG
             - task: Bash@3
