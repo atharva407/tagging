@@ -25,45 +25,31 @@ variables:
 # We can easily switch back to jobs if we want.
 
 jobs:
-  - job: init
-    displayName: 'Initialize Variables'
-    pool: Default #Can be any pool
-    steps:
-    - script: |
-        echo "isMain : $(isMain)"
-        echo "isHotfix: $(isHotfix)"
-        echo "isCandidate : $(isCandidate)"
-        echo "isRelease: $(isRelease)"
-    - task: Bash@3
-      name: set_env
-      displayName: 'Set Env'
-      inputs:
-        targetType: inline
-        script: |
-          GIT_SHA=$(git rev-parse --short HEAD)
-          echo "##vso[task.setvariable variable=sha;isOutput=true]$GIT_SHA"
-          echo $GIT_SHA
-          GIT_TAG=$(git tag --points-at HEAD)
-          echo "##vso[task.setvariable variable=tag;isOutput=true]$GIT_TAG"
-          echo $GIT_TAG
-          echo "##vso[task.setvariable variable=image;isOutput=true]$(Build.Repository.Name)"
   - job: build
     displayName: 'Build Project'
     condition: or(eq(variables.isMain,true),eq(variables.isHotfix,true))
-    dependsOn: 'init'
-    variables:
-      GIT_SHA: $[ dependencies.Initialize.outputs['set_env.sha'] ]
-      GIT_TAG: $[ dependencies.Initialize.outputs['set_env.tag'] ]
-      IMAGE: $[dependencies.Initialize.outputs['set_env.image']]
     pool: 'Default'  #Replace by build agent pool / dev
     steps:
+      - task: Bash@3
+        name: set_env
+        displayName: 'Set Env'
+        inputs:
+          targetType: inline
+          script: |
+            GIT_SHA=$(git rev-parse --short HEAD)
+            echo "##vso[task.setvariable variable=sha;isOutput=true]$GIT_SHA"
+            echo $GIT_SHA
+            GIT_TAG=$(git tag --points-at HEAD)
+            echo "##vso[task.setvariable variable=tag;isOutput=true]$GIT_TAG"
+            echo $GIT_TAG
+            echo "##vso[task.setvariable variable=image;isOutput=true]$(Build.Repository.Name)"
       - task: Bash@3
         inputs:
           targetType: 'inline'
           script: |
             echo "docker build steps.."
-            echo "image tag: $(IMAGE):$(GIT_SHA)"
-            echo "docker push DEV_ACR/$(IMAGE)"
+            echo "image tag: $(image):$(sha)"
+            echo "docker push DEV_ACR/$(image)"
   - deployment: dev_deploy
     displayName: 'Deploy to dev env'
     condition: eq(variables.isMain,true)
@@ -75,18 +61,26 @@ jobs:
         deploy:
           steps:
             - task: Bash@3
+              name: set_env
+              displayName: 'Set Env'
+              inputs:
+                targetType: inline
+                script: |
+                  GIT_SHA=$(git rev-parse --short HEAD)
+                  echo "##vso[task.setvariable variable=sha;isOutput=true]$GIT_SHA"
+                  echo $GIT_SHA
+                  GIT_TAG=$(git tag --points-at HEAD)
+                  echo "##vso[task.setvariable variable=tag;isOutput=true]$GIT_TAG"
+                  echo $GIT_TAG
+                  echo "##vso[task.setvariable variable=image;isOutput=true]$(Build.Repository.Name)"
+            - task: Bash@3
               inputs:
                 targetType: 'inline'
                 script: |
-                  echo "container app dev deployment with DEV_ACR/$(IMAGE):$(GIT_SHA)"
+                  echo "container app dev deployment with DEV_ACR/$(image):$(tag)"
   - deployment: sand_US_deploy
     displayName: 'Deploy to US sandbox env'
     condition: startsWith(variables['Build.SourceBranchName'], 'rc-')
-    variables:
-      GIT_SHA: $[ dependencies.Initialize.outputs['set_env.sha'] ]
-      GIT_TAG: $[ dependencies.Initialize.outputs['set_env.tag'] ]
-      IMAGE: $[dependencies.Initialize.outputs['set_env.image']]
-    dependsOn: 'init'
     pool: 'Default' #Replace With Sandbox US pool
     environment: 'sandbox_US'
     strategy:
@@ -94,10 +88,23 @@ jobs:
        deploy:
         steps:
         - task: Bash@3
+          name: set_env
+          displayName: 'Set Env'
+          inputs:
+            targetType: inline
+            script: |
+              GIT_SHA=$(git rev-parse --short HEAD)
+              echo "##vso[task.setvariable variable=sha;isOutput=true]$GIT_SHA"
+              echo $GIT_SHA
+              GIT_TAG=$(git tag --points-at HEAD)
+              echo "##vso[task.setvariable variable=tag;isOutput=true]$GIT_TAG"
+              echo $GIT_TAG
+              echo "##vso[task.setvariable variable=image;isOutput=true]$(Build.Repository.Name)"
+        - task: Bash@3
           inputs:
             targetType: 'inline'
             script: |
-              echo "docker pull $(IMAGE):$(GIT_SHA)"
-              echo "docker tag $(IMAGE):$(GIT_SHA) $(IMAGE):$(GIT_TAG)"
-              echo "docker push SAND_ACR/$(IMAGE):$(GIT_TAG)"
-              echo "container app dev deployment with SAND_ACR/$(IMAGE):$(GIT_SHA)"
+              echo "docker pull $(image):$(sha)"
+              echo "docker tag $(image):$(sha) $(image):$(tag)"
+              echo "docker push SAND_ACR/$(image):$(tag)"
+              echo "container app dev deployment with SAND_ACR/$(image):$(tag)"
